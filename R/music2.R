@@ -255,6 +255,7 @@ music2_prop = function(bulk.control.mtx, bulk.case.mtx, sc.sce, clusters, sample
 #'    \item {convergence: logical, whether MuSiC2 converged or not.}
 #'    \item {n.iter: numeric, number of iterations.}
 #'    \item {DE.genes: vector, cell-type-specific DE genes being removed.}
+#'    \item {DE.fc}: list, cell-type-specific DE genes with their log2FC
 #'    }
 #'  Or if MuSiC2 does not converge, return:
 #'  \itemize{
@@ -367,6 +368,8 @@ music2_prop_t_statistics = function(bulk.control.mtx, bulk.case.mtx, sc.sce, clu
     # average cell type proportion
     mex = apply(prop_all,2,mean)
     lr = NULL
+    de_fc = vector('list', length(select.ct))
+    names(de_fc) <- select.ct
     for(celltype in select.ct){
       m = mex[celltype]
       rh = MOD0[celltype,]
@@ -379,11 +382,16 @@ music2_prop_t_statistics = function(bulk.control.mtx, bulk.case.mtx, sc.sce, clu
       x = x[!names(x) %in% llr]
       # select genes with large mean/SD of log fc and with at least moderate log fc as DE
       if(m >= prop_r){
-        lr = c(lr, intersect(names(x[x >= quantile(x,prob=1-cutoff_c)]), names(fc[abs(fc)>=log1p(cutoff_fc)])))
+        de_symbols <- intersect(names(x[x >= quantile(x,prob=1-cutoff_c)]),
+                                names(fc[abs(fc)>=log1p(cutoff_fc)]))
+        lr = c(lr, de_symbols)
+        de_fc[[celltype]] <- c(de_fc[[celltype]], fc[de_symbols])
       }else{
-        lr = c(lr, intersect(names(x[x >= quantile(x,prob=1-cutoff_r)]), names(fc[abs(fc)>=log1p(cutoff_fc)])))
+        de_symbols <- intersect(names(x[x >= quantile(x,prob=1-cutoff_r)]),
+                                names(fc[abs(fc)>=log1p(cutoff_fc)]))
+        lr = c(lr, de_symbols)
+        de_fc[[celltype]] <- c(de_fc[[celltype]], fc[de_symbols])
       }
-    }
     lr = unique(lr)
 
     # step 3: update sc gene list
@@ -441,7 +449,7 @@ music2_prop_t_statistics = function(bulk.control.mtx, bulk.case.mtx, sc.sce, clu
   }
   # return estimated proportion
   if(all_converge){
-    return(list('Est.prop' = prop_all,'convergence'=TRUE,'n.iter'=iter,'DE.genes'=lr))}
+    return(list('Est.prop' = prop_all,'convergence'=TRUE,'n.iter'=iter,'DE.genes'=lr, 'DE.fc'=de_fc))}
   else{
     return(list('Est.prop' = prop_all,'convergence'=FALSE,'id.not.converge'=rownames(prop_case_ini)))}
 }
