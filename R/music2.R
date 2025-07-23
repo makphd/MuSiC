@@ -27,6 +27,7 @@
 #' @param ct.cov logical. If TRUE, use the covariance across cell types;
 #' @param centered logic, subtract avg of Y and D;
 #' @param normalize logic, divide Y and D by their standard deviation;
+#' @param rand_seed numeric, random seed
 #' @return If MuSiC2 converges, return:
 #' \itemize{
 #'    \item {Est.prop: matrix, cell type proportion estimates.}
@@ -47,7 +48,7 @@
 music2_prop = function(bulk.control.mtx, bulk.case.mtx, sc.sce, clusters, samples, select.ct, expr_low=20,
                        prop_r=0.1, eps_c=0.05, eps_r=0.01, n_resample=20, sample_prop=0.5,cutoff_expr=0.05,
                        cutoff_c=0.05, cutoff_r=0.01, maxiter = 200, markers = NULL, cell_size = NULL, ct.cov = FALSE,
-                       centered = FALSE, normalize = FALSE){
+                       centered = FALSE, normalize = FALSE, rand_seed = NULL){
   gene.bulk = intersect(rownames(bulk.control.mtx), rownames(bulk.case.mtx))
   if(length(gene.bulk) < 0.1*min(nrow(bulk.control.mtx), nrow(bulk.case.mtx))){
     stop('Not enough genes for bulk data! Please check gene annotations.')
@@ -85,6 +86,11 @@ music2_prop = function(bulk.control.mtx, bulk.case.mtx, sc.sce, clusters, sample
                              nu = 0.0001, eps = 0.01, centered = centered, normalize = normalize, verbose = F)$Est.prop.weighted
   prop_CASE = prop_case_ini
   prop_all = rbind(prop_control,prop_CASE)
+
+  # Set random seed if given
+  if (!is.null(rand_seed)) {
+    set.seed(rand_seed)
+  }
 
   # start iteration
   iter=1
